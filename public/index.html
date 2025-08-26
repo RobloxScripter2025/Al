@@ -17,26 +17,6 @@
   <input id="input" placeholder="Type a message..." style="width:80%;">
   <button onclick="send()">Send</button>
 
-  <script>
-    async function send() {
-      const input = document.getElementById("input");
-      const chat = document.getElementById("chat");
-      const msg = input.value;
-      input.value = "";
-
-      chat.innerHTML += `<div class="msg user">You: ${msg}</div>`;
-
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: msg }] })
-      });
-      const data = await res.json();
-      const reply = data.choices[0].message.content;
-
-      chat.innerHTML += `<div class="msg bot">AI: ${reply}</div>`;
-      chat.scrollTop = chat.scrollHeight;
-    }
-  </script>
+  <script src="main.js"></script>
 </body>
 </html>
