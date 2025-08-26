@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Groq AI Chat</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; }
+    .msg { margin: 5px 0; }
+    .user { font-weight: bold; color: blue; }
+    .bot { font-weight: bold; color: green; }
+  </style>
+</head>
+<body>
+  <h2>Groq AI Chat</h2>
+  <div id="chat"></div>
+  <input id="input" placeholder="Type a message..." style="width:80%;">
+  <button onclick="send()">Send</button>
+
+  <script>
+    async function send() {
+      const input = document.getElementById("input");
+      const chat = document.getElementById("chat");
+      const msg = input.value;
+      input.value = "";
+
+      chat.innerHTML += `<div class="msg user">You: ${msg}</div>`;
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: msg }] })
+      });
+      const data = await res.json();
+      const reply = data.choices[0].message.content;
+
+      chat.innerHTML += `<div class="msg bot">AI: ${reply}</div>`;
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>
