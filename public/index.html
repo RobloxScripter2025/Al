@@ -2,17 +2,30 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Groq AI Chat</title>
+  <title>Google Classroom</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    #chat { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; }
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background-color: #282c34; /* <-- page background */
+      color: #ffffff;             /* optional: text color */
+    }
+
+    #chat {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+      background-color: #1c1f26; /* <-- chat box background */
+    }
+
     .msg { margin: 5px 0; }
-    .user { font-weight: bold; color: blue; }
-    .bot { font-weight: bold; color: green; }
+    .user { font-weight: bold; color: #61dafb; }
+    .bot { font-weight: bold; color: #98c379; }
   </style>
 </head>
 <body>
-  <h2>Groq AI Chat</h2>
+  <h2>NOT AN AI (TRUST)</h2>
   <div id="chat"></div>
   <input id="input" placeholder="Type a message..." style="width:80%;">
   <button onclick="send()">Send</button>
