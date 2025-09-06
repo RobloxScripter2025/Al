@@ -16,7 +16,7 @@
       display: flex;
     }
 
-    #container { display: flex; flex: 1; height: 100vh; }
+    #container { display: flex; flex: 1; height: 100vh; position: relative; }
 
     /* --- Sidebar --- */
     aside#sidebar {
@@ -26,6 +26,19 @@
       border-right: 1px solid #333;
       display: flex;
       flex-direction: column;
+      transition: left 0.3s ease;
+      z-index: 1000;
+    }
+
+    #sidebarToggle {
+      display: none; /* shown on mobile */
+      margin-bottom: 10px;
+      background-color: #3a86ff;
+      color: white;
+      border: none;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
     #newChatBtn {
@@ -130,10 +143,15 @@
     /* --- Mobile responsiveness --- */
     @media (max-width: 600px) {
       #container { flex-direction: column; }
-      aside#sidebar { width: 100%; display: flex; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid #333; }
-      #chatList { display: flex; flex-direction: row; flex: 1; overflow-x: auto; margin-left: 5px; }
-      #chatList li { margin-right: 5px; margin-bottom: 0; white-space: nowrap; }
-      main { flex: 1; }
+      #sidebar {
+        position: absolute;
+        top: 0;
+        left: -250px; /* hidden by default */
+        height: 100%;
+      }
+      #sidebar.active { left: 0; }
+      #sidebarToggle { display: block; }
+      #chatList { overflow-x: auto; }
       #chat { height: 50vh; }
     }
   </style>
@@ -141,6 +159,7 @@
 <body>
   <div id="container">
     <aside id="sidebar">
+      <button id="sidebarToggle">☰</button>
       <button id="newChatBtn">+ New Chat</button>
       <ul id="chatList"></ul>
     </aside>
@@ -153,6 +172,18 @@
       </footer>
     </main>
   </div>
+
   <script src="main.js"></script>
+  <script>
+    // Sidebar toggle for mobile
+    const sidebar = document.getElementById("sidebar");
+    const sidebarToggle = document.getElementById("sidebarToggle");
+    sidebarToggle.onclick = () => sidebar.classList.toggle("active");
+
+    // Auto-hide sidebar on mobile when selecting chat
+    function hideSidebarOnMobile() {
+      if (window.innerWidth <= 600) sidebar.classList.remove("active");
+    }
+  </script>
 </body>
 </html>
