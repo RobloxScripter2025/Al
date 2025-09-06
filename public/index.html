@@ -21,6 +21,11 @@
       display: flex;
       flex-direction: column;
       overflow-y: auto;
+      transition: transform 0.3s ease;
+    }
+
+    #sidebar.hidden {
+      transform: translateX(-100%);
     }
 
     #sidebar button {
@@ -64,8 +69,18 @@
       padding: 15px;
       background-color: #282c34;
       border-bottom: 1px solid #333;
-      text-align: center;
-      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header button {
+      background-color: #3a86ff;
+      border: none;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
     #chat {
@@ -146,12 +161,15 @@
 </head>
 <body>
   <div id="sidebar">
-    <button onclick="createNewSession()">+ New Chat</button>
+    <button onclick="promptNewChat()">+ New Chat</button>
     <div id="sessionList"></div>
   </div>
 
   <div id="main">
-    <header>Groq AI Chat</header>
+    <header>
+      <span>Groq AI Chat</span>
+      <button onclick="toggleSidebar()">☰</button>
+    </header>
     <div id="chat"></div>
     <footer>
       <input id="input" placeholder="Type a message...">
