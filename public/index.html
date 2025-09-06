@@ -2,34 +2,88 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Google Classroom</title>
+  <title>Groq AI Chat</title>
   <style>
     body {
-      font-family: sans-serif;
-      margin: 20px;
-      background-color: #282c34; /* <-- page background */
-      color: #ffffff;             /* optional: text color */
+      font-family: Arial, sans-serif;
+      background-color: #1e1e2f;
+      color: #e6e6e6;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background-color: #282c34;
+      padding: 15px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
     }
 
     #chat {
-      border: 1px solid #ccc;
-      padding: 10px;
-      height: 400px;
+      flex: 1;
+      padding: 15px;
       overflow-y: auto;
-      background-color: #1c1f26; /* <-- chat box background */
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .msg { margin: 5px 0; }
-    .user { font-weight: bold; color: #61dafb; }
-    .bot { font-weight: bold; color: #98c379; }
+    .msg {
+      padding: 10px 15px;
+      border-radius: 12px;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #3a86ff;
+      color: #fff;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #44475a;
+      color: #f8f8f2;
+    }
+
+    footer {
+      display: flex;
+      padding: 10px;
+      background-color: #282c34;
+      border-top: 1px solid #333;
+    }
+
+    footer input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      margin-right: 10px;
+    }
+
+    footer button {
+      background-color: #3a86ff;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h2>NOT AN AI (TRUST)</h2>
+  <header>Groq AI Chat</header>
   <div id="chat"></div>
-  <input id="input" placeholder="Type a message..." style="width:80%;">
-  <button onclick="send()">Send</button>
-
+  <footer>
+    <input id="input" placeholder="Type a message...">
+    <button onclick="send()">Send</button>
+  </footer>
   <script src="main.js"></script>
 </body>
 </html>
