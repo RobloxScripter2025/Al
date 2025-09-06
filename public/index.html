@@ -2,35 +2,79 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Groq AI Chat</title>
+  <title>Groq AI Multi-Chat</title>
   <style>
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
       background-color: #1e1e2f;
       color: #e6e6e6;
-      margin: 0;
-      padding: 0;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: 250px;
+      background-color: #282c34;
+      border-right: 1px solid #333;
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      overflow-y: auto;
+    }
+
+    #sidebar button {
+      background-color: #3a86ff;
+      border: none;
+      color: #fff;
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #sessionList {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .session-item {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #44475a;
+    }
+
+    .session-item.active {
+      background-color: #3a86ff;
+      color: #fff;
+    }
+
+    /* Main chat area */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     header {
-      background-color: #282c34;
       padding: 15px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: bold;
+      background-color: #282c34;
       border-bottom: 1px solid #333;
+      text-align: center;
+      font-weight: bold;
     }
 
     #chat {
       flex: 1;
       padding: 15px;
-      overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      overflow-y: auto;
     }
 
     .msg {
@@ -75,15 +119,46 @@
       border-radius: 8px;
       cursor: pointer;
     }
+
+    /* Mobile adjustments */
+    @media screen and (max-width: 700px) {
+      body {
+        flex-direction: column;
+      }
+
+      #sidebar {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+
+      #sessionList {
+        flex-direction: row;
+        overflow-x: auto;
+      }
+
+      #main {
+        flex: 1;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>Groq AI Chat</header>
-  <div id="chat"></div>
-  <footer>
-    <input id="input" placeholder="Type a message...">
-    <button onclick="send()">Send</button>
-  </footer>
+  <div id="sidebar">
+    <button onclick="createNewSession()">+ New Chat</button>
+    <div id="sessionList"></div>
+  </div>
+
+  <div id="main">
+    <header>Groq AI Chat</header>
+    <div id="chat"></div>
+    <footer>
+      <input id="input" placeholder="Type a message...">
+      <button onclick="send()">Send</button>
+    </footer>
+  </div>
+
   <script src="main.js"></script>
 </body>
 </html>
