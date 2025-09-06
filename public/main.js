@@ -3,7 +3,7 @@ const input = document.getElementById("input");
 const sessionListDiv = document.getElementById("sessionList");
 const sidebar = document.getElementById("sidebar");
 
-let sessions = {};          // All chat sessions
+let sessions = {};          // All sessions
 let currentSession = null;  // Current session key
 
 // --- Initialize ---
@@ -96,8 +96,15 @@ async function send() {
       body: JSON.stringify({ messages: sessions[currentSession].messages })
     });
 
+    if (!res.ok) throw new Error("Network error");
+
     const data = await res.json();
-    const reply = data.reply || "Error: no response"; // Groq response key
+
+    // Groq may return 'completion' or 'reply'
+    let reply = "";
+    if (data.reply) reply = data.reply;
+    else if (data.completion) reply = data.completion;
+    else reply = "Error: no AI response";
 
     // Add AI message
     sessions[currentSession].messages.push({ role: "assistant", content: reply });
