@@ -3,7 +3,7 @@ const input = document.getElementById("input");
 const sessionListDiv = document.getElementById("sessionList");
 const sidebar = document.getElementById("sidebar");
 
-let sessions = {};          // All sessions
+let sessions = {};          // All chat sessions
 let currentSession = null;  // Current session key
 
 // --- Initialize ---
@@ -88,18 +88,16 @@ async function send() {
   renderChat();
   saveSessions();
 
-  // Call backend
+  // Call backend Groq API
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: sessions[currentSession].messages })
     });
+
     const data = await res.json();
-    let reply = "Error: no response";
-    if (data.choices && data.choices[0].message) {
-      reply = data.choices[0].message.content;
-    }
+    const reply = data.reply || "Error: no response"; // Groq response key
 
     // Add AI message
     sessions[currentSession].messages.push({ role: "assistant", content: reply });
