@@ -1,13 +1,15 @@
 const chatWindow = document.getElementById("chat");
 const input = document.getElementById("input");
+const sessionListDiv = document.getElementById("sessionList");
 
-let sessions = {};          // All chat sessions
+let sessions = {};          // All sessions
 let currentSession = null;  // Current session key
 
 // --- Initialize ---
 window.onload = () => {
   loadSessions();
   if (!currentSession) createNewSession();
+  renderSidebar();
   renderChat();
 };
 
@@ -30,13 +32,26 @@ function createNewSession() {
   sessions[key] = [];
   currentSession = key;
   saveSessions();
+  renderSidebar();
   renderChat();
 }
 
-// Optional: switch session
 function switchSession(key) {
   currentSession = key;
+  renderSidebar();
   renderChat();
+}
+
+// --- Render sidebar ---
+function renderSidebar() {
+  sessionListDiv.innerHTML = "";
+  Object.keys(sessions).forEach(key => {
+    const btn = document.createElement("div");
+    btn.className = "session-item" + (key === currentSession ? " active" : "");
+    btn.innerText = key;
+    btn.onclick = () => switchSession(key);
+    sessionListDiv.appendChild(btn);
+  });
 }
 
 // --- Chat rendering ---
@@ -88,17 +103,3 @@ async function send() {
     saveSessions();
   }
 }
-
-// --- Mobile-friendly adjustments ---
-function adjustLayout() {
-  if (window.innerWidth < 600) {
-    document.body.style.flexDirection = "column";
-    chatWindow.style.height = "50vh";
-  } else {
-    document.body.style.flexDirection = "column";
-    chatWindow.style.height = "calc(100vh - 100px)";
-  }
-}
-
-window.addEventListener("resize", adjustLayout);
-adjustLayout();
