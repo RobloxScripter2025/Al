@@ -1,16 +1,13 @@
 const chatWindow = document.getElementById("chat");
 const input = document.getElementById("input");
-const sessionListDiv = document.getElementById("sessionList");
-const sidebar = document.getElementById("sidebar");
 
-let sessions = {};          // All sessions
+let sessions = {};          // All chat sessions
 let currentSession = null;  // Current session key
 
 // --- Initialize ---
 window.onload = () => {
   loadSessions();
-  if (!currentSession) promptNewChat(); // ask for first chat name if none
-  renderSidebar();
+  if (!currentSession) createNewSession();
   renderChat();
 };
 
@@ -27,40 +24,19 @@ function loadSessions() {
   }
 }
 
-// --- Sidebar toggle ---
-function toggleSidebar() {
-  sidebar.classList.toggle("hidden");
-}
-
 // --- Session management ---
-function promptNewChat() {
-  const name = prompt("Enter chat name:", "New Chat");
-  if (!name) return;
-
+function createNewSession() {
   const key = `session-${Date.now()}`;
-  sessions[key] = { name, messages: [] };
+  sessions[key] = [];
   currentSession = key;
   saveSessions();
-  renderSidebar();
   renderChat();
 }
 
+// Optional: switch session
 function switchSession(key) {
   currentSession = key;
-  renderSidebar();
   renderChat();
-}
-
-// --- Render sidebar ---
-function renderSidebar() {
-  sessionListDiv.innerHTML = "";
-  Object.keys(sessions).forEach(key => {
-    const btn = document.createElement("div");
-    btn.className = "session-item" + (key === currentSession ? " active" : "");
-    btn.innerText = sessions[key].name;
-    btn.onclick = () => switchSession(key);
-    sessionListDiv.appendChild(btn);
-  });
 }
 
 // --- Chat rendering ---
@@ -68,7 +44,7 @@ function renderChat() {
   chatWindow.innerHTML = "";
   if (!currentSession || !sessions[currentSession]) return;
 
-  sessions[currentSession].messages.forEach(msg => {
+  sessions[currentSession].forEach(msg => {
     const div = document.createElement("div");
     div.className = "msg " + (msg.role === "user" ? "user" : "bot");
     div.innerText = msg.content;
@@ -84,36 +60,45 @@ async function send() {
   input.value = "";
 
   // Add user message
-  sessions[currentSession].messages.push({ role: "user", content: msg });
+  sessions[currentSession].push({ role: "user", content: msg });
   renderChat();
   saveSessions();
 
-  // Call backend Groq API
+  // Call backend
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: sessions[currentSession].messages })
+      body: JSON.stringify({ messages: sessions[currentSession] })
     });
-
-    if (!res.ok) throw new Error("Network error");
-
     const data = await res.json();
-
-    // Groq may return 'completion' or 'reply'
-    let reply = "";
-    if (data.reply) reply = data.reply;
-    else if (data.completion) reply = data.completion;
-    else reply = "Error: no AI response";
+    let reply = "Error: no response";
+    if (data.choices && data.choices[0].message) {
+      reply = data.choices[0].message.content;
+    }
 
     // Add AI message
-    sessions[currentSession].messages.push({ role: "assistant", content: reply });
+    sessions[currentSession].push({ role: "assistant", content: reply });
     renderChat();
     saveSessions();
   } catch (err) {
     console.error(err);
-    sessions[currentSession].messages.push({ role: "assistant", content: "Error contacting AI" });
+    sessions[currentSession].push({ role: "assistant", content: "Error contacting AI" });
     renderChat();
     saveSessions();
   }
 }
+
+// --- Mobile-friendly adjustments ---
+function adjustLayout() {
+  if (window.innerWidth < 600) {
+    document.body.style.flexDirection = "column";
+    chatWindow.style.height = "50vh";
+  } else {
+    document.body.style.flexDirection = "column";
+    chatWindow.style.height = "calc(100vh - 100px)";
+  }
+}
+
+window.addEventListener("resize", adjustLayout);
+adjustLayout();
