@@ -2,9 +2,11 @@ import express from "express";
 import fetch from "node-fetch";
 import path from "path";
 import { fileURLToPath } from "url";
+import cors from "cors";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -22,16 +24,25 @@ app.post("/api/chat", async (req, res) => {
       },
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
-        messages
+        messages: messages
       })
     });
 
     const data = await response.json();
-    res.json(data);
+
+    // Groq response might differ, adjust here:
+    let reply = "";
+    if (data.choices && data.choices[0].message) {
+      reply = data.choices[0].message.content;
+    } else if (data.completion) {
+      reply = data.completion;
+    }
+
+    res.json({ reply });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(500).json({ error: "Groq API error" });
   }
 });
 
-app.listen(process.env.PORT || 10000, () => console.log("✅ AI server running"));
+app.listen(process.env.PORT || 10000, () => console.log("✅ Groq AI server running"));
