@@ -1,68 +1,104 @@
-// --- Cookie helpers ---
-function setCookie(name, value, days = 7) {
-  const d = new Date();
-  d.setTime(d.getTime() + (days*24*60*60*1000));
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/`;
-}
+const chatWindow = document.getElementById("chat");
+const input = document.getElementById("input");
 
-function getCookie(name) {
-  const cname = name + "=";
-  const decoded = decodeURIComponent(document.cookie);
-  const ca = decoded.split(';');
-  for (let c of ca) {
-    while (c.charAt(0) === ' ') c = c.substring(1);
-    if (c.indexOf(cname) === 0) return c.substring(cname.length, c.length);
-  }
-  return "";
-}
+let sessions = {};          // All chat sessions
+let currentSession = null;  // Current session key
 
-// --- Chat logic ---
-const chat = document.getElementById("chat");
-let messages = [];
-
-// Restore from cookies
+// --- Initialize ---
 window.onload = () => {
-  const saved = getCookie("chatHistory");
-  if (saved) {
-    messages = JSON.parse(saved);
-    messages.forEach(m => renderMessage(m.role, m.content));
-  }
+  loadSessions();
+  if (!currentSession) createNewSession();
+  renderChat();
 };
 
-function renderMessage(role, content) {
-  const div = document.createElement("div");
-  div.className = "msg " + (role === "user" ? "user" : "bot");
-  div.innerText = content;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+// --- LocalStorage helpers ---
+function saveSessions() {
+  localStorage.setItem("chatSessions", JSON.stringify(sessions));
 }
 
+function loadSessions() {
+  const saved = localStorage.getItem("chatSessions");
+  if (saved) {
+    sessions = JSON.parse(saved);
+    currentSession = Object.keys(sessions)[0];
+  }
+}
+
+// --- Session management ---
+function createNewSession() {
+  const key = `session-${Date.now()}`;
+  sessions[key] = [];
+  currentSession = key;
+  saveSessions();
+  renderChat();
+}
+
+// Optional: switch session
+function switchSession(key) {
+  currentSession = key;
+  renderChat();
+}
+
+// --- Chat rendering ---
+function renderChat() {
+  chatWindow.innerHTML = "";
+  if (!currentSession || !sessions[currentSession]) return;
+
+  sessions[currentSession].forEach(msg => {
+    const div = document.createElement("div");
+    div.className = "msg " + (msg.role === "user" ? "user" : "bot");
+    div.innerText = msg.content;
+    chatWindow.appendChild(div);
+  });
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// --- Send message ---
 async function send() {
-  const input = document.getElementById("input");
   const msg = input.value.trim();
   if (!msg) return;
   input.value = "";
 
-  // Render & store user message
-  renderMessage("user", msg);
-  messages.push({ role: "user", content: msg });
-  setCookie("chatHistory", JSON.stringify(messages));
+  // Add user message
+  sessions[currentSession].push({ role: "user", content: msg });
+  renderChat();
+  saveSessions();
 
   // Call backend
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages })
-  });
-  const data = await res.json();
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: sessions[currentSession] })
+    });
+    const data = await res.json();
+    let reply = "Error: no response";
+    if (data.choices && data.choices[0].message) {
+      reply = data.choices[0].message.content;
+    }
 
-  let reply = "Error";
-  if (data.choices && data.choices[0].message) {
-    reply = data.choices[0].message.content;
+    // Add AI message
+    sessions[currentSession].push({ role: "assistant", content: reply });
+    renderChat();
+    saveSessions();
+  } catch (err) {
+    console.error(err);
+    sessions[currentSession].push({ role: "assistant", content: "Error contacting AI" });
+    renderChat();
+    saveSessions();
   }
-
-  // Render & store bot reply
-  renderMessage("assistant", reply);
-  messages.push({ role: "assistant", content: reply });
-  setCookie("chatHistory", JSON.stringify(messages));
 }
+
+// --- Mobile-friendly adjustments ---
+function adjustLayout() {
+  if (window.innerWidth < 600) {
+    document.body.style.flexDirection = "column";
+    chatWindow.style.height = "50vh";
+  } else {
+    document.body.style.flexDirection = "column";
+    chatWindow.style.height = "calc(100vh - 100px)";
+  }
+}
+
+window.addEventListener("resize", adjustLayout);
+adjustLayout();
