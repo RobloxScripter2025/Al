@@ -1,49 +1,58 @@
 const chatWindow = document.getElementById("chat");
 const input = document.getElementById("input");
+const newChatBtn = document.getElementById("newChatBtn");
+const chatList = document.getElementById("chatList");
 
-let sessions = {};          // All chat sessions
-let currentSession = null;  // Current session key
+let sessions = {};
+let currentSession = null;
 
-// --- Initialize ---
-window.onload = () => {
-  loadSessions();
-  if (!currentSession) createNewSession();
-  renderChat();
-};
+// --- Load sessions from localStorage ---
+function loadSessions() {
+  const saved = localStorage.getItem("chatSessions");
+  if (saved) sessions = JSON.parse(saved);
+  currentSession = Object.keys(sessions)[0] || createNewSession();
+  renderSidebar();
+}
 
-// --- LocalStorage helpers ---
+// --- Save sessions ---
 function saveSessions() {
   localStorage.setItem("chatSessions", JSON.stringify(sessions));
 }
 
-function loadSessions() {
-  const saved = localStorage.getItem("chatSessions");
-  if (saved) {
-    sessions = JSON.parse(saved);
-    currentSession = Object.keys(sessions)[0];
-  }
-}
-
-// --- Session management ---
+// --- Create a new session ---
 function createNewSession() {
   const key = `session-${Date.now()}`;
   sessions[key] = [];
   currentSession = key;
   saveSessions();
+  renderSidebar();
   renderChat();
+  return key;
 }
 
-// Optional: switch session
+// --- Switch session ---
 function switchSession(key) {
   currentSession = key;
   renderChat();
+  renderSidebar();
 }
 
-// --- Chat rendering ---
+// --- Render sidebar ---
+function renderSidebar() {
+  chatList.innerHTML = "";
+  for (const key of Object.keys(sessions)) {
+    const li = document.createElement("li");
+    li.innerText = key; // optionally give it a nicer title
+    li.className = key === currentSession ? "active" : "";
+    li.onclick = () => switchSession(key);
+    chatList.appendChild(li);
+  }
+}
+
+// --- Render chat window ---
 function renderChat() {
   chatWindow.innerHTML = "";
-  if (!currentSession || !sessions[currentSession]) return;
-
+  if (!currentSession) return;
   sessions[currentSession].forEach(msg => {
     const div = document.createElement("div");
     div.className = "msg " + (msg.role === "user" ? "user" : "bot");
@@ -73,11 +82,8 @@ async function send() {
     });
     const data = await res.json();
     let reply = "Error: no response";
-    if (data.choices && data.choices[0].message) {
-      reply = data.choices[0].message.content;
-    }
+    if (data.choices && data.choices[0].message) reply = data.choices[0].message.content;
 
-    // Add AI message
     sessions[currentSession].push({ role: "assistant", content: reply });
     renderChat();
     saveSessions();
@@ -89,16 +95,8 @@ async function send() {
   }
 }
 
-// --- Mobile-friendly adjustments ---
-function adjustLayout() {
-  if (window.innerWidth < 600) {
-    document.body.style.flexDirection = "column";
-    chatWindow.style.height = "50vh";
-  } else {
-    document.body.style.flexDirection = "column";
-    chatWindow.style.height = "calc(100vh - 100px)";
-  }
-}
+// --- New Chat button ---
+newChatBtn.onclick = createNewSession;
 
-window.addEventListener("resize", adjustLayout);
-adjustLayout();
+// --- Initialize ---
+window.onload = loadSessions;
