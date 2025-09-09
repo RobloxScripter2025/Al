@@ -21,7 +21,7 @@ app.post("/api/chat", async (req, res) => {
   if (!aiEnabled) {
     return res.json({ error: "AI is currently disabled by admin." });
   }
-
+  
   const { message } = req.body;
   if (!message) return res.json({ error: "No message provided" });
 
@@ -61,6 +61,10 @@ app.get("/admin/login", (req, res) => {
       <button type="submit">Login</button>
     </form>
   `);
+});
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // --- Handle Admin Login ---
