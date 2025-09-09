@@ -1,102 +1,138 @@
-const chatWindow = document.getElementById("chat");
-const input = document.getElementById("input");
-const newChatBtn = document.getElementById("newChatBtn");
-const chatList = document.getElementById("chatList");
-
 let sessions = {};
-let currentSession = null;
+let currentSessionId = null;
 
-// --- Load sessions from localStorage ---
-function loadSessions() {
-  const saved = localStorage.getItem("chatSessions");
-  if (saved) sessions = JSON.parse(saved);
-  currentSession = Object.keys(sessions)[0] || createNewSession();
-  renderSidebar();
-}
+// === DOM elements ===
+const chatEl = document.getElementById("chat");
+const inputEl = document.getElementById("input");
+const chatListEl = document.getElementById("chatList");
+const fileUploadEl = document.getElementById("fileUpload");
 
-// --- Save sessions ---
-function saveSessions() {
-  localStorage.setItem("chatSessions", JSON.stringify(sessions));
-}
+// === Start with one session ===
+newSession();
 
-// --- Create a new session ---
-function createNewSession() {
-  const key = `session-${Date.now()}`;
-  sessions[key] = [];
-  currentSession = key;
-  saveSessions();
+// --- Helpers ---
+function newSession() {
+  const id = Date.now().toString();
+  sessions[id] = [];
+  currentSessionId = id;
   renderSidebar();
   renderChat();
-  return key;
 }
 
-// --- Switch session ---
-function switchSession(key) {
-  currentSession = key;
-  renderChat();
+function switchSession(id) {
+  currentSessionId = id;
   renderSidebar();
+  renderChat();
+  if (typeof hideSidebarOnMobile === "function") hideSidebarOnMobile();
 }
 
-// --- Render sidebar ---
 function renderSidebar() {
-  chatList.innerHTML = "";
-  for (const key of Object.keys(sessions)) {
+  chatListEl.innerHTML = "";
+  Object.keys(sessions).forEach((id) => {
     const li = document.createElement("li");
-    li.innerText = key; // optionally give it a nicer title
-    li.className = key === currentSession ? "active" : "";
-    li.onclick = () => switchSession(key);
-    chatList.appendChild(li);
-  }
-}
-
-// --- Render chat window ---
-function renderChat() {
-  chatWindow.innerHTML = "";
-  if (!currentSession) return;
-  sessions[currentSession].forEach(msg => {
-    const div = document.createElement("div");
-    div.className = "msg " + (msg.role === "user" ? "user" : "bot");
-    div.innerText = msg.content;
-    chatWindow.appendChild(div);
+    li.textContent = "Chat " + id;
+    if (id === currentSessionId) li.classList.add("active");
+    li.onclick = () => switchSession(id);
+    chatListEl.appendChild(li);
   });
-  chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// --- Send message ---
+function renderChat() {
+  chatEl.innerHTML = "";
+  sessions[currentSessionId].forEach((msg) => addMessage(msg.role, msg.content, false));
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function addMessage(role, content, save = true) {
+  const div = document.createElement("div");
+  div.classList.add("msg", role);
+  if (role === "file") {
+    div.classList.add("file");
+    div.textContent = `📎 File: ${content}`;
+  } else if (role === "image") {
+    const img = document.createElement("img");
+    img.src = content;
+    img.alt = "Generated image";
+    img.style.maxWidth = "300px";
+    img.style.borderRadius = "8px";
+    div.appendChild(img);
+  } else {
+    div.textContent = content;
+  }
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  if (save) sessions[currentSessionId].push({ role, content });
+}
+
+// --- Sending text ---
 async function send() {
-  const msg = input.value.trim();
-  if (!msg) return;
-  input.value = "";
+  const message = inputEl.value.trim();
+  if (!message) return;
+  inputEl.value = "";
 
-  // Add user message
-  sessions[currentSession].push({ role: "user", content: msg });
-  renderChat();
-  saveSessions();
+  addMessage("user", message);
 
-  // Call backend
+  // detect image request
+  const wantsImage = /generate (an )?image|draw|picture|photo/i.test(message);
+
+  if (wantsImage) {
+    addMessage("bot", "🖼️ Generating image...");
+    try {
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: message })
+      });
+      const data = await res.json();
+      if (data.error) {
+        addMessage("bot", "⚠️ " + data.error);
+      } else if (data.url) {
+        addMessage("image", data.url);
+      } else {
+        addMessage("bot", "⚠️ Image generation failed.");
+      }
+    } catch {
+      addMessage("bot", "⚠️ Error generating image.");
+    }
+    return;
+  }
+
+  // otherwise normal AI chat
+  addMessage("bot", "⏳ Thinking...");
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: sessions[currentSession] })
+      body: JSON.stringify({ message })
     });
     const data = await res.json();
-    let reply = "Error: no response";
-    if (data.choices && data.choices[0].message) reply = data.choices[0].message.content;
-
-    sessions[currentSession].push({ role: "assistant", content: reply });
-    renderChat();
-    saveSessions();
-  } catch (err) {
-    console.error(err);
-    sessions[currentSession].push({ role: "assistant", content: "Error contacting AI" });
-    renderChat();
-    saveSessions();
+    chatEl.lastChild.remove(); // remove "⏳ Thinking..."
+    if (data.error) {
+      addMessage("bot", "⚠️ " + data.error);
+    } else {
+      addMessage("bot", data.reply || "⚠️ No reply.");
+    }
+  } catch {
+    chatEl.lastChild.remove();
+    addMessage("bot", "⚠️ Failed to reach server.");
   }
 }
 
-// --- New Chat button ---
-newChatBtn.onclick = createNewSession;
+// --- File uploads ---
+fileUploadEl.addEventListener("change", () => {
+  const file = fileUploadEl.files[0];
+  if (file) {
+    addMessage("file", file.name);
+    // If you want to actually upload:
+    // const formData = new FormData();
+    // formData.append("file", file);
+    // fetch("/api/upload", { method:"POST", body: formData });
+  }
+});
 
-// --- Initialize ---
-window.onload = loadSessions;
+// --- Bind events ---
+document.getElementById("newChatBtn").onclick = newSession;
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") send();
+});
