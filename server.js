@@ -1,32 +1,43 @@
 import express from "express";
 import fetch from "node-fetch";
 import session from "express-session";
+import path from "path";
+import { fileURLToPath } from "url";
 
+// --- Fix __dirname in ESM ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// --- Initialize app ---
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Simple session (in-memory, fine for small Render project) ---
+// --- Session setup ---
 app.use(session({
-  secret: "supersecretkey", // change if you want
+  secret: "supersecretkey", // change for production
   resave: false,
   saveUninitialized: true
 }));
 
-// --- AI Toggle State ---
+// --- Serve frontend files ---
+app.use(express.static(path.join(__dirname, "public")));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// --- In-memory AI toggle ---
 let aiEnabled = true;
 
-// --- Chat Endpoint (Groq) ---
+// --- Chat endpoint ---
 app.post("/api/chat", async (req, res) => {
-  if (!aiEnabled) {
-    return res.json({ error: "AI is currently disabled by admin." });
-  }
-  
+  if (!aiEnabled) return res.json({ error: "AI is currently disabled by admin." });
+
   const { message } = req.body;
-  if (!message) return res.json({ error: "No message provided" });
+  if (!message) return res.json({ error: "No message provided." });
 
   try {
-    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -38,36 +49,35 @@ app.post("/api/chat", async (req, res) => {
       })
     });
 
-    const data = await r.json();
-    if (data.error) {
-      return res.json({ error: data.error.message });
-    }
+    const data = await response.json();
+    if (data.error) return res.json({ error: data.error.message });
 
     const reply = data.choices?.[0]?.message?.content || "⚠️ No reply.";
     res.json({ reply });
 
   } catch (err) {
-    res.json({ error: "Chat error: " + err.message });
+    console.error(err);
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
-// --- Admin Login Page ---
+// --- Image generation placeholder ---
+app.post("/api/generate-image", async (req, res) => {
+  if (!aiEnabled) return res.json({ error: "AI is currently disabled by admin." });
+
+  const { prompt } = req.body;
+  if (!prompt) return res.json({ error: "No prompt provided." });
+
+  // Placeholder: returns a dummy image for now
+  res.json({ url: "https://via.placeholder.com/512?text=Image+placeholder" });
+});
+
+// --- Admin login page ---
 app.get("/admin/login", (req, res) => {
-  res.send(`
-    <h2>Admin Login</h2>
-    <form method="POST" action="/admin/login">
-      <input type="text" name="username" placeholder="Username" /><br/>
-      <input type="password" name="password" placeholder="Password" /><br/>
-      <button type="submit">Login</button>
-    </form>
-  `);
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// --- Handle Admin Login ---
+// --- Admin login POST ---
 app.post("/admin/login", (req, res) => {
   const { username, password } = req.body;
   if (username === "Braxton" && password === "OGMSAdmin") {
@@ -77,15 +87,13 @@ app.post("/admin/login", (req, res) => {
   res.send("<p>Invalid login. <a href='/admin/login'>Try again</a></p>");
 });
 
-// --- Admin Panel (Protected) ---
+// --- Admin panel (protected) ---
 app.get("/admin", (req, res) => {
-  if (!req.session.loggedIn) {
-    return res.redirect("/admin/login");
-  }
+  if (!req.session.loggedIn) return res.redirect("/admin/login");
 
   res.send(`
     <h1>Admin Panel</h1>
-    <p>AI is currently: <b>${aiEnabled ? "ENABLED ✅" : "DISABLED ❌"}</b></p>
+    <p>AI Status: <b>${aiEnabled ? "ENABLED ✅" : "DISABLED ❌"}</b></p>
     <form method="POST" action="/admin/toggle">
       <button type="submit">${aiEnabled ? "Disable AI" : "Enable AI"}</button>
     </form>
@@ -96,21 +104,15 @@ app.get("/admin", (req, res) => {
 
 // --- Toggle AI ---
 app.post("/admin/toggle", (req, res) => {
-  if (req.session.loggedIn) {
-    aiEnabled = !aiEnabled;
-  }
+  if (req.session.loggedIn) aiEnabled = !aiEnabled;
   res.redirect("/admin");
 });
 
 // --- Logout ---
 app.get("/admin/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/admin/login");
-  });
+  req.session.destroy(() => res.redirect("/admin/login"));
 });
 
-// --- Start Server ---
+// --- Start server ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
