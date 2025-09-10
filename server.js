@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = "llama2-7b"; // Use an active Groq model
+const GROQ_MODEL = "llama-3.1-8b-instant"; // Use an active Groq model
 
 if (!GROQ_API_KEY) {
   console.error("⚠️ GROQ_API_KEY is not set in environment variables.");
