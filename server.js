@@ -25,7 +25,10 @@ app.use(express.static(path.join(__dirname, "public")));
 app.post("/api/chat", async (req, res) => {
   try {
     const { messages } = req.body;
-    if (!messages) return res.status(400).json({ error: "Missing messages array" });
+    if (!messages) {
+      console.error("Received empty messages array:", req.body);
+      return res.status(400).json({ error: "Missing messages array" });
+    }
 
     const response = await fetch("https://api.groq.com/v1/chat/completions", {
       method: "POST",
@@ -40,12 +43,17 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "⚠️ No reply";
 
+    if (!data.choices || !data.choices[0]?.message?.content) {
+      console.error("Groq API did not return a valid response:", data);
+      return res.status(500).json({ reply: "⚠️ Invalid response from Groq API" });
+    }
+
+    const reply = data.choices[0].message.content;
     res.json({ reply });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ reply: "⚠️ Server error. Please try again." });
+    console.error("Chat API error:", err);
+    res.status(500).json({ reply: "⚠️ Server error. Check console for details." });
   }
 });
 
@@ -59,7 +67,22 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// ===== Catch-all error handler =====
+app.use((err, req, res, next) => {
+  console.error("Unhandled server error:", err);
+  res.status(500).send("⚠️ Internal Server Error. Check server console.");
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// ===== Global unhandled exception logging =====
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception thrown:", err);
 });
