@@ -1,7 +1,7 @@
 import express from "express";
 import fetch from "node-fetch";
-import session from "express-session";
 import cookieParser from "cookie-parser";
+import session from "express-session";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -11,24 +11,22 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- Middleware ---
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(session({
-  secret: "supersecretkey",
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }
-}));
-
-// --- Static frontend ---
-app.use(express.static(path.join(__dirname, "public")));
-
-// --- AI toggle ---
 let aiEnabled = true;
 
-// --- Chat API ---
+app.use(express.json());
+app.use(cookieParser());
+app.use(
+  session({
+    secret: "super-secret-key",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
+// Serve static files (frontend)
+app.use(express.static(path.join(__dirname, "public")));
+
+// ----------- CHAT ENDPOINT -----------
 app.post("/api/chat", async (req, res) => {
   if (!aiEnabled) return res.json({ reply: "⚠️ AI is disabled by admin." });
 
@@ -36,11 +34,12 @@ app.post("/api/chat", async (req, res) => {
   if (!message) return res.json({ reply: "⚠️ No message provided." });
 
   try {
-    // Load chat history from cookie
+    // Load chat history safely
     let messages = [];
     if (req.cookies.chatHistory) {
       try {
-        messages = JSON.parse(req.cookies.chatHistory);
+        const parsed = JSON.parse(req.cookies.chatHistory);
+        if (Array.isArray(parsed)) messages = parsed;
       } catch {
         messages = [];
       }
@@ -48,18 +47,21 @@ app.post("/api/chat", async (req, res) => {
 
     messages.push({ role: "user", content: message });
 
-    // --- Groq API call ---
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile", // ✅ valid replacement model
-        messages
-      })
-    });
+    // Call Groq API
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages,
+        }),
+      }
+    );
 
     const data = await response.json();
     console.log("Groq raw response:", data);
@@ -67,7 +69,11 @@ app.post("/api/chat", async (req, res) => {
     const reply = data?.choices?.[0]?.message?.content || "⚠️ No reply.";
 
     messages.push({ role: "assistant", content: reply });
-    res.cookie("chatHistory", JSON.stringify(messages), { maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+    // Save back to cookies
+    res.cookie("chatHistory", JSON.stringify(messages), {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     res.json({ reply });
   } catch (err) {
@@ -76,65 +82,38 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// --- Clear chat ---
+// ----------- CLEAR CHAT ENDPOINT -----------
 app.post("/api/clear-chat", (req, res) => {
   res.clearCookie("chatHistory");
   res.json({ success: true });
 });
 
-// --- Admin login page ---
-app.get("/admin/login", (req, res) => {
-  res.send(`
-    <h2>Admin Login</h2>
-    <form method="POST" action="/admin/login">
-      <input type="text" name="username" placeholder="Username" required /><br/>
-      <input type="password" name="password" placeholder="Password" required /><br/>
-      <button type="submit">Login</button>
-    </form>
-  `);
+// ----------- ADMIN PANEL -----------
+app.get("/admin", (req, res) => {
+  if (!req.session.loggedIn) {
+    return res.sendFile(path.join(__dirname, "public", "admin-login.html"));
+  }
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// --- Admin login handler ---
-app.post("/admin/login", (req, res) => {
+app.post("/api/admin-login", (req, res) => {
   const { username, password } = req.body;
   if (username === "Braxton" && password === "OGMSAdmin") {
     req.session.loggedIn = true;
-    return res.redirect("/admin");
+    return res.json({ success: true });
   }
-  res.send("<p>Invalid login. <a href='/admin/login'>Try again</a></p>");
+  res.json({ success: false });
 });
 
-// --- Admin panel ---
-app.get("/admin", (req, res) => {
-  if (!req.session.loggedIn) return res.redirect("/admin/login");
+app.post("/api/toggle-ai", (req, res) => {
+  if (!req.session.loggedIn)
+    return res.status(403).json({ success: false, message: "Unauthorized" });
 
-  res.send(`
-    <h2>Admin Panel</h2>
-    <p>AI is currently: <b>${aiEnabled ? "ENABLED" : "DISABLED"}</b></p>
-    <form method="POST" action="/admin/toggle">
-      <button type="submit">Toggle AI</button>
-    </form>
-    <form method="POST" action="/admin/logout">
-      <button type="submit">Logout</button>
-    </form>
-  `);
+  aiEnabled = req.body.enabled;
+  res.json({ success: true, aiEnabled });
 });
 
-// --- Toggle AI ---
-app.post("/admin/toggle", (req, res) => {
-  if (!req.session.loggedIn) return res.redirect("/admin/login");
-  aiEnabled = !aiEnabled;
-  res.redirect("/admin");
-});
-
-// --- Logout ---
-app.post("/admin/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/admin/login");
-  });
-});
-
-// --- Start server ---
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+// ----------- START SERVER -----------
+app.listen(PORT, () =>
+  console.log(`✅ Server running on http://localhost:${PORT}`)
+);
