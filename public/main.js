@@ -1,77 +1,58 @@
-const messagesDiv = document.getElementById("messages");
-const input = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
-const newChatBtn = document.getElementById("new-chat");
-const chatList = document.getElementById("chat-list");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+const chatWindow = document.getElementById("chat-window");
 
+// Load chat history from cookies
 let chatHistory = [];
-let chatSessions = [];
-let currentChatIndex = -1;
-
-function startNewChat() {
-  chatHistory = [];
-  messagesDiv.innerHTML = "";
-  currentChatIndex = chatSessions.length;
-  chatSessions.push([]);
-  renderChatList();
+const saved = document.cookie.split("; ").find(row => row.startsWith("chatHistory="));
+if (saved) {
+  try {
+    chatHistory = JSON.parse(decodeURIComponent(saved.split("=")[1]));
+    chatHistory.forEach(msg => appendMessage(msg.role, msg.content));
+  } catch {}
 }
 
-function renderChatList() {
-  chatList.innerHTML = "";
-  chatSessions.forEach((session, i) => {
-    const li = document.createElement("li");
-    li.textContent = session[0]?.content.slice(0, 15) || "New Chat";
-    li.onclick = () => loadChat(i);
-    chatList.appendChild(li);
-  });
+function appendMessage(role, content) {
+  const div = document.createElement("div");
+  div.className = role;
+  div.textContent = `${role === "user" ? "You" : "AI"}: ${content}`;
+  chatWindow.appendChild(div);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-function loadChat(index) {
-  currentChatIndex = index;
-  chatHistory = chatSessions[index] || [];
-  messagesDiv.innerHTML = "";
-  chatHistory.forEach(msg =>
-    addMessage(msg.role === "user" ? "You" : "AI", msg.content, msg.role)
-  );
+function saveHistory() {
+  document.cookie = `chatHistory=${encodeURIComponent(JSON.stringify(chatHistory))}; path=/; max-age=604800`;
 }
 
-async function sendMessage() {
-  const message = input.value.trim();
+// Handle chat form submission
+chatForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const message = chatInput.value.trim();
   if (!message) return;
-
-  addMessage("You", message, "user");
-  input.value = "";
+  appendMessage("user", message);
+  chatHistory.push({ role: "user", content: message });
+  chatInput.value = "";
+  saveHistory();
 
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: "You are OGMSAI, a helpful assistant." },
+          ...chatHistory
+        ]
+      })
     });
 
     const data = await res.json();
-    addMessage("AI", data.reply, "ai");
+    const reply = data.reply || "⚠️ No reply";
+    appendMessage("assistant", reply);
+    chatHistory.push({ role: "assistant", content: reply });
+    saveHistory();
+
   } catch (err) {
-    addMessage("AI", "⚠️ Error: Could not connect to server.", "ai");
+    appendMessage("assistant", "⚠️ Server error. Please try again.");
   }
-}
-
-function addMessage(sender, text, role) {
-  const msg = document.createElement("div");
-  msg.classList.add("message", role);
-  msg.textContent = text;
-  messagesDiv.appendChild(msg);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-  chatHistory.push({ role, content: text });
-  if (currentChatIndex >= 0) {
-    chatSessions[currentChatIndex] = chatHistory;
-  }
-}
-
-sendBtn.addEventListener("click", sendMessage);
-input.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
-newChatBtn.addEventListener("click", startNewChat);
-
+};
