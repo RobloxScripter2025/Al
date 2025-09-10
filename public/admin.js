@@ -1,42 +1,41 @@
 const loginForm = document.getElementById("login-form");
-const loginContainer = document.getElementById("login-container");
-const dashboardContainer = document.getElementById("dashboard-container");
-const loginError = document.getElementById("login-error");
-const aiToggle = document.getElementById("ai-toggle");
-const aiStatus = document.getElementById("ai-status");
-const logoutBtn = document.getElementById("logout-btn");
+const loginView = document.getElementById("login-view");
+const dashboardView = document.getElementById("dashboard-view");
+const toggleAI = document.getElementById("toggle-ai");
+const logoutBtn = document.getElementById("logout");
 
-// Admin credentials
-const ADMIN_USER = "Braxton";
-const ADMIN_PASS = "OGMSAdmin";
-
-loginForm.addEventListener("submit", (e) => {
+// Login
+loginForm.onsubmit = async (e) => {
   e.preventDefault();
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    loginContainer.classList.add("hidden");
-    dashboardContainer.classList.remove("hidden");
-  } else {
-    loginError.textContent = "Invalid username or password.";
-  }
-});
-
-aiToggle.addEventListener("change", () => {
-  const enabled = aiToggle.checked;
-  aiStatus.textContent = enabled ? "AI Enabled" : "AI Disabled";
-
-  fetch("/api/admin/toggle", {
+  const res = await fetch("/api/admin-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ enabled }),
+    body: JSON.stringify({ username, password })
   });
-});
 
-logoutBtn.addEventListener("click", () => {
-  dashboardContainer.classList.add("hidden");
-  loginContainer.classList.remove("hidden");
-  loginForm.reset();
-  loginError.textContent = "";
-});
+  const data = await res.json();
+  if (data.success) {
+    loginView.style.display = "none";
+    dashboardView.style.display = "block";
+  } else {
+    alert("❌ Login failed.");
+  }
+};
+
+// Toggle AI
+toggleAI.onchange = async (e) => {
+  await fetch("/api/admin-toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled: e.target.checked })
+  });
+};
+
+// Logout
+logoutBtn.onclick = async () => {
+  await fetch("/api/admin-logout", { method: "POST" });
+  location.reload();
+};
