@@ -10,14 +10,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ===== Groq settings =====
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = "llama2-7b"; // Use an active Groq model
+const GROQ_MODEL = "llama2-7b"; // Update to a supported model
 
 if (!GROQ_API_KEY) {
-  console.error("⚠️ GROQ_API_KEY is not set in environment variables.");
+  console.error("⚠️ GROQ_API_KEY is not set in environment variables!");
 }
 
-// Middleware
+// ===== Middleware =====
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -25,10 +26,12 @@ app.use(express.static(path.join(__dirname, "public")));
 app.post("/api/chat", async (req, res) => {
   try {
     const { messages } = req.body;
-    if (!messages) {
-      console.error("Received empty messages array:", req.body);
-      return res.status(400).json({ error: "Missing messages array" });
+    if (!messages || !Array.isArray(messages)) {
+      console.error("Invalid messages payload:", req.body);
+      return res.status(400).json({ reply: "⚠️ Invalid messages payload" });
     }
+
+    console.log("Sending messages to Groq API:", messages);
 
     const response = await fetch("https://api.groq.com/v1/chat/completions", {
       method: "POST",
@@ -39,20 +42,28 @@ app.post("/api/chat", async (req, res) => {
       body: JSON.stringify({
         model: GROQ_MODEL,
         messages: messages.map(m => ({ role: m.role, content: m.content }))
-      })
+      }),
     });
 
     const data = await response.json();
+    console.log("Groq API raw response:", JSON.stringify(data, null, 2));
 
-    if (!data.choices || !data.choices[0]?.message?.content) {
-      console.error("Groq API did not return a valid response:", data);
-      return res.status(500).json({ reply: "⚠️ Invalid response from Groq API" });
+    let reply = "⚠️ No reply";
+
+    // Extract reply safely
+    if (data?.choices && data.choices[0]?.message?.content) {
+      reply = data.choices[0].message.content;
+    } else if (data?.error) {
+      console.error("Groq API returned error:", data.error);
+      reply = "⚠️ Groq API error. Check console.";
+    } else {
+      console.error("Unexpected Groq API response:", data);
+      reply = "⚠️ Unexpected Groq API response. Check console.";
     }
 
-    const reply = data.choices[0].message.content;
     res.json({ reply });
   } catch (err) {
-    console.error("Chat API error:", err);
+    console.error("Chat API exception:", err);
     res.status(500).json({ reply: "⚠️ Server error. Check console for details." });
   }
 });
@@ -67,22 +78,21 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ===== Catch-all error handler =====
+// ===== Global error handlers =====
 app.use((err, req, res, next) => {
   console.error("Unhandled server error:", err);
   res.status(500).send("⚠️ Internal Server Error. Check server console.");
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// ===== Global unhandled exception logging =====
 process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception thrown:", err);
+});
+
+// ===== Start server =====
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
