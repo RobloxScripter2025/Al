@@ -17,7 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(session({
   secret: "supersecretkey", // change for production
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
+  cookie: { secure: false } // must be false for HTTP (Render uses HTTPS automatically)
 }));
 
 // --- Serve frontend files ---
@@ -44,7 +45,7 @@ app.post("/api/chat", async (req, res) => {
         "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        "model": "llama-3.3-70b-versatile",
+        model: "llama-3.3-70b-versatile",
         messages: [{ role: "user", content: message }]
       })
     });
@@ -68,7 +69,7 @@ app.post("/api/generate-image", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.json({ error: "No prompt provided." });
 
-  // Placeholder: returns a dummy image for now
+  // Placeholder: returns a dummy image URL
   res.json({ url: "https://via.placeholder.com/512?text=Image+placeholder" });
 });
 
@@ -79,11 +80,14 @@ app.get("/admin/login", (req, res) => {
 
 // --- Admin login POST ---
 app.post("/admin/login", (req, res) => {
+  console.log("Login attempt:", req.body);
   const { username, password } = req.body;
   if (username === "Braxton" && password === "OGMSAdmin") {
     req.session.loggedIn = true;
+    console.log("Login success!");
     return res.redirect("/admin");
   }
+  console.log("Login failed!");
   res.send("<p>Invalid login. <a href='/admin/login'>Try again</a></p>");
 });
 
@@ -95,7 +99,7 @@ app.get("/admin", (req, res) => {
     <h1>Admin Panel</h1>
     <p>AI Status: <b>${aiEnabled ? "ENABLED ✅" : "DISABLED ❌"}</b></p>
     <form method="POST" action="/admin/toggle">
-      <button type="submit">${aiEnabled ? "Disable AI" : "Enable AI"}</button>
+      <button type="submit">${aiEnabled ? "Disable" : "Enable"} AI</button>
     </form>
     <br/>
     <a href="/admin/logout">Logout</a>
