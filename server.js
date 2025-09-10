@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 // ===== Groq settings =====
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = "llama2-7b"; // Must be an active, supported model
+const GROQ_MODEL = "openai/gpt-oss-20b"; // Must be an active, supported model
 
 if (!GROQ_API_KEY) {
   console.error("⚠️ GROQ_API_KEY is not set in environment variables!");
