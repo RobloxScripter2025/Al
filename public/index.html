@@ -2,21 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Google Classroom</title>
+  <title>OGMSAI</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>OGMSAI</h1>
-  </header>
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <h2>OGMSAI</h2>
+      <button id="new-chat">+ New Chat</button>
+    </div>
+    <ul id="chat-list"></ul>
+  </aside>
 
-  <main>
+  <!-- Main chat area -->
+  <main id="main">
+    <header>
+      <h1>Assistant</h1>
+    </header>
+
     <div id="chat-container">
       <div id="messages"></div>
       <div id="input-area">
         <input type="text" id="user-input" placeholder="Type a message..." />
         <button id="send-btn">Send</button>
-        <button id="clear-btn">Clear Chat</button>
       </div>
     </div>
   </main>
