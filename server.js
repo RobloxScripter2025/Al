@@ -10,27 +10,28 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Replace with your Groq API key
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "YOUR_GROQ_API_KEY";
-const GROQ_MODEL = "llama2-7b"; // Recommended active model
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = "llama2-7b"; // Use an active Groq model
+
+if (!GROQ_API_KEY) {
+  console.error("⚠️ GROQ_API_KEY is not set in environment variables.");
+}
 
 // Middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ===== Routes =====
-
-// Chat API
+// ===== Chat API =====
 app.post("/api/chat", async (req, res) => {
   try {
     const { messages } = req.body;
     if (!messages) return res.status(400).json({ error: "Missing messages array" });
 
-    const response = await fetch(`https://api.groq.com/v1/chat/completions`, {
+    const response = await fetch("https://api.groq.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: GROQ_MODEL,
@@ -39,7 +40,6 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const data = await response.json();
-    // Groq returns an array of choices
     const reply = data.choices?.[0]?.message?.content || "⚠️ No reply";
 
     res.json({ reply });
@@ -49,7 +49,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Admin login placeholder (you can expand)
+// ===== Admin page placeholder =====
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
