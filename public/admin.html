@@ -2,88 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>OGMSAI Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login</title>
   <style>
-    body {
-      background: #1e1e2f;
-      color: #e6e6e6;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .panel {
-      background: #282c34;
-      padding: 20px;
-      border-radius: 8px;
-      width: 300px;
-      text-align: center;
-    }
-    input, button {
-      margin: 8px 0;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      width: 100%;
-    }
-    button {
-      background: #3a86ff;
-      color: white;
-      cursor: pointer;
-    }
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; }
+    form { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    input { display: block; margin: 1rem 0; padding: 0.5rem; width: 100%; }
+    button { padding: 0.5rem 1rem; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div class="panel">
-    <h2>OGMSAI Admin</h2>
-    <div id="loginForm">
-      <input id="username" placeholder="Username">
-      <input id="password" type="password" placeholder="Password">
-      <button onclick="login()">Login</button>
-    </div>
-    <div id="controls" style="display:none;">
-      <p>Status: <span id="status">Checking...</span></p>
-      <button onclick="toggleAI(true)">Enable AI</button>
-      <button onclick="toggleAI(false)">Disable AI</button>
-    </div>
-  </div>
-
-  <script>
-    let loggedIn = false;
-
-    async function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-
-      const res = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        loggedIn = true;
-        document.getElementById("loginForm").style.display = "none";
-        document.getElementById("controls").style.display = "block";
-        document.getElementById("status").textContent = "Enabled";
-      } else {
-        alert("Invalid login!");
-      }
-    }
-
-    async function toggleAI(enabled) {
-      if (!loggedIn) return;
-      const res = await fetch("/api/admin/toggle", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ enabled })
-      });
-      const data = await res.json();
-      document.getElementById("status").textContent = data.aiEnabled ? "Enabled" : "Disabled";
-    }
-  </script>
+  <form method="POST" action="/admin/login">
+    <h2>Admin Login</h2>
+    <input type="text" name="username" placeholder="Username" required />
+    <input type="password" name="password" placeholder="Password" required />
+    <button type="submit">Login</button>
+  </form>
 </body>
 </html>
