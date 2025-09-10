@@ -4,149 +4,30 @@
   <meta charset="UTF-8">
   <title>Google Classroom</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #1e1e2f;
-      color: #e6e6e6;
-      height: 100vh;
-      display: flex;
-      margin: 0;
-    }
-    #container { display: flex; flex: 1; height: 100vh; position: relative; }
-
-    /* Sidebar */
-    aside#sidebar {
-      width: 220px;
-      background-color: #23232f;
-      padding: 10px;
-      border-right: 1px solid #333;
-      display: flex;
-      flex-direction: column;
-      transition: left 0.3s ease;
-      z-index: 1000;
-    }
-    #sidebarToggle {
-      display: none;
-      margin-bottom: 10px;
-      background-color: #3a86ff;
-      color: white;
-      border: none;
-      padding: 8px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    #newChatBtn {
-      background-color: #3a86ff;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 10px;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-    #chatList {
-      list-style: none;
-      flex: 1;
-      overflow-y: auto;
-    }
-    #chatList li {
-      padding: 8px;
-      margin-bottom: 5px;
-      cursor: pointer;
-      border-radius: 6px;
-      background-color: #2e2e42;
-      color: #e6e6e6;
-      font-size: 14px;
-    }
-    #chatList li.active { background-color: #3a86ff; color: #fff; }
-
-    /* Main */
-    main { flex: 1; display: flex; flex-direction: column; }
-    header {
-      background-color: #282c34;
-      padding: 15px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: bold;
-      border-bottom: 1px solid #333;
-    }
-    #chat {
-      flex: 1;
-      padding: 15px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .msg { padding: 10px 15px; border-radius: 12px; max-width: 70%; word-wrap: break-word; }
-    .user { align-self: flex-end; background-color: #3a86ff; color: #fff; }
-    .bot { align-self: flex-start; background-color: #44475a; color: #f8f8f2; }
-    .file { font-style: italic; }
-
-    footer {
-      display: flex;
-      padding: 10px;
-      background-color: #282c34;
-      border-top: 1px solid #333;
-      gap: 8px;
-    }
-    footer input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-    }
-    footer input[type="file"] {
-      display: none;
-    }
-    footer button {
-      background-color: #3a86ff;
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    /* Mobile */
-    @media (max-width: 600px) {
-      #container { flex-direction: column; }
-      #sidebar {
-        position: absolute;
-        top: 0; left: -250px;
-        height: 100%;
-      }
-      #sidebar.active { left: 0; }
-      #sidebarToggle { display: block; }
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <header>
+    <h1>OGMSAI</h1>
+  </header>
+
   <div id="container">
+    <!-- Sidebar -->
     <aside id="sidebar">
-      <button id="sidebarToggle">☰</button>
-      <button id="newChatBtn">+ New Chat</button>
-      <ul id="chatList"></ul>
+      <button id="new-chat">+ New Chat</button>
+      <ul id="chat-list"></ul>
     </aside>
-    <main>
-      <header>OGMSAI</header>
-      <div id="chat"></div>
-      <footer>
-        <input id="input" type="text" placeholder="Type a message...">
-        <label for="fileUpload" style="background:#3a86ff; padding:10px; border-radius:8px; cursor:pointer; color:white;">📎</label>
-        <input id="fileUpload" type="file">
-        <button onclick="send()">Send</button>
-      </footer>
+
+    <!-- Chat Area -->
+    <main id="chat-area">
+      <div id="chat-box"></div>
+      <form id="chat-form">
+        <input type="text" id="chat-input" placeholder="Type a message..." required />
+        <button type="submit">Send</button>
+      </form>
     </main>
   </div>
 
-  <script src="main.js"></script>
-  <script>
-    // Sidebar toggle for mobile
-    const sidebar = document.getElementById("sidebar");
-    const sidebarToggle = document.getElementById("sidebarToggle");
-    sidebarToggle.onclick = () => sidebar.classList.toggle("active");
-  </script>
+  <script src="/main.js"></script>
 </body>
 </html>
