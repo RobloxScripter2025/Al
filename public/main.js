@@ -15,16 +15,16 @@ if (saved) {
 // Current chat session
 let currentChat = Object.keys(chats)[0] || createNewChat();
 
-// Initialize sidebar
+// ===== Functions =====
 function updateSidebar() {
   chatList.innerHTML = "";
-  for (const id of Object.keys(chats)) {
+  Object.keys(chats).forEach(id => {
     const li = document.createElement("li");
     li.textContent = id;
     li.className = id === currentChat ? "active" : "";
     li.onclick = () => switchChat(id);
     chatList.appendChild(li);
-  }
+  });
 }
 
 function saveChats() {
@@ -56,19 +56,21 @@ function renderChat() {
 
 function appendMessage(role, content) {
   const div = document.createElement("div");
-  div.className = role;
-  div.textContent = `${role === "user" ? "You" : "AI"}: ${content}`;
+  div.className = role === "user" ? "user-msg" : "ai-msg";
+  div.textContent = content;
   chatWindow.appendChild(div);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// Handle sending message
-chatForm.onsubmit = async (e) => {
+// ===== Event Handlers =====
+
+// Chat submission
+chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const message = chatInput.value.trim();
-  if (!message) return;
+  if (!message && !fileInput.files.length) return;
 
-  // File handling (optional: just display filename)
+  // File upload display
   if (fileInput.files.length > 0) {
     const fileName = fileInput.files[0].name;
     appendMessage("user", `[File Uploaded: ${fileName}]`);
@@ -76,9 +78,12 @@ chatForm.onsubmit = async (e) => {
     fileInput.value = "";
   }
 
-  appendMessage("user", message);
-  chats[currentChat].push({ role: "user", content: message });
-  chatInput.value = "";
+  if (message) {
+    appendMessage("user", message);
+    chats[currentChat].push({ role: "user", content: message });
+    chatInput.value = "";
+  }
+
   saveChats();
 
   try {
@@ -92,15 +97,16 @@ chatForm.onsubmit = async (e) => {
         ]
       })
     });
+
     const data = await res.json();
     const reply = data.reply || "⚠️ No reply";
     appendMessage("assistant", reply);
     chats[currentChat].push({ role: "assistant", content: reply });
     saveChats();
-  } catch {
+  } catch (err) {
     appendMessage("assistant", "⚠️ Server error. Please try again.");
   }
-};
+});
 
 // New chat button
 newChatBtn.onclick = createNewChat;
