@@ -5,17 +5,28 @@ const chatList = document.getElementById("chat-list");
 const newChatBtn = document.getElementById("new-chat");
 const fileInput = document.getElementById("file-input");
 
-// Load chats from cookies
+// ===== Load chats from cookies =====
 let chats = {};
 const saved = document.cookie.split("; ").find(row => row.startsWith("chats="));
 if (saved) {
-  try { chats = JSON.parse(decodeURIComponent(saved.split("=")[1])); } catch {}
+  try {
+    chats = JSON.parse(decodeURIComponent(saved.split("=")[1]));
+  } catch {}
 }
 
-// Current chat session
-let currentChat = Object.keys(chats)[0] || createNewChat();
+// ===== Initialize current chat =====
+let currentChat = null;
+
+if (Object.keys(chats).length === 0) {
+  createNewChat();
+} else {
+  currentChat = Object.keys(chats)[0];
+  updateSidebar();
+  renderChat();
+}
 
 // ===== Functions =====
+
 function updateSidebar() {
   chatList.innerHTML = "";
   Object.keys(chats).forEach(id => {
@@ -110,7 +121,3 @@ chatForm.addEventListener("submit", async (e) => {
 
 // New chat button
 newChatBtn.onclick = createNewChat;
-
-// Initial render
-updateSidebar();
-renderChat();
