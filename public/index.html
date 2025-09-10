@@ -12,18 +12,21 @@
   </header>
 
   <div id="container">
+    <!-- Sidebar -->
     <aside id="sidebar">
       <h2>Chats</h2>
       <ul id="chat-list"></ul>
       <button id="new-chat">+ New Chat</button>
     </aside>
 
+    <!-- Main Chat Area -->
     <main id="main-chat">
       <div id="chat-window"></div>
+
       <form id="chat-form">
         <input type="text" id="chat-input" placeholder="Type your message..." required />
         <input type="file" id="file-input" />
-        <button type="submit">Send</button>
+        <button type="submit" id="send-btn">Send</button>
       </form>
     </main>
   </div>
