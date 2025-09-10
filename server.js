@@ -4,21 +4,20 @@ import session from "express-session";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// --- Fix __dirname in ESM ---
+// --- __dirname fix for ESM ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- Initialize app ---
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Session setup ---
+// --- Session middleware ---
 app.use(session({
-  secret: "supersecretkey", // change for production
+  secret: "supersecretkey",
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // must be false for HTTP (Render uses HTTPS automatically)
+  cookie: { secure: false } // false for HTTP/Render dev
 }));
 
 // --- Serve frontend files ---
@@ -27,13 +26,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// --- In-memory AI toggle ---
+// --- AI toggle ---
 let aiEnabled = true;
 
 // --- Chat endpoint ---
 app.post("/api/chat", async (req, res) => {
-  if (!aiEnabled) return res.json({ error: "AI is currently disabled by admin." });
-
+  if (!aiEnabled) return res.json({ error: "AI is currently disabled." });
   const { message } = req.body;
   if (!message) return res.json({ error: "No message provided." });
 
@@ -49,7 +47,6 @@ app.post("/api/chat", async (req, res) => {
         messages: [{ role: "user", content: message }]
       })
     });
-
     const data = await response.json();
     if (data.error) return res.json({ error: data.error.message });
 
@@ -64,12 +61,10 @@ app.post("/api/chat", async (req, res) => {
 
 // --- Image generation placeholder ---
 app.post("/api/generate-image", async (req, res) => {
-  if (!aiEnabled) return res.json({ error: "AI is currently disabled by admin." });
-
+  if (!aiEnabled) return res.json({ error: "AI is currently disabled." });
   const { prompt } = req.body;
   if (!prompt) return res.json({ error: "No prompt provided." });
 
-  // Placeholder: returns a dummy image URL
   res.json({ url: "https://via.placeholder.com/512?text=Image+placeholder" });
 });
 
@@ -80,18 +75,15 @@ app.get("/admin/login", (req, res) => {
 
 // --- Admin login POST ---
 app.post("/admin/login", (req, res) => {
-  console.log("Login attempt:", req.body);
   const { username, password } = req.body;
   if (username === "Braxton" && password === "OGMSAdmin") {
     req.session.loggedIn = true;
-    console.log("Login success!");
     return res.redirect("/admin");
   }
-  console.log("Login failed!");
   res.send("<p>Invalid login. <a href='/admin/login'>Try again</a></p>");
 });
 
-// --- Admin panel (protected) ---
+// --- Admin panel ---
 app.get("/admin", (req, res) => {
   if (!req.session.loggedIn) return res.redirect("/admin/login");
 
