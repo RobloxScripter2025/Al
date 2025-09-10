@@ -26,7 +26,6 @@ if (Object.keys(chats).length === 0) {
 }
 
 // ===== Functions =====
-
 function updateSidebar() {
   chatList.innerHTML = "";
   Object.keys(chats).forEach(id => {
@@ -74,14 +73,11 @@ function appendMessage(role, content) {
 }
 
 // ===== Event Handlers =====
-
-// Chat submission
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const message = chatInput.value.trim();
   if (!message && !fileInput.files.length) return;
 
-  // File upload display
   if (fileInput.files.length > 0) {
     const fileName = fileInput.files[0].name;
     appendMessage("user", `[File Uploaded: ${fileName}]`);
@@ -119,5 +115,4 @@ chatForm.addEventListener("submit", async (e) => {
   }
 });
 
-// New chat button
 newChatBtn.onclick = createNewChat;
