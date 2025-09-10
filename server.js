@@ -17,13 +17,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   session({
-    secret: "super-secret-key",
+    secret: "super-secret-key", // change this
     resave: false,
     saveUninitialized: true,
+    cookie: { secure: false }, // set secure: true if using https
   })
 );
 
-// Serve static files (frontend)
+// ----------- STATIC FILES -----------
 app.use(express.static(path.join(__dirname, "public")));
 
 // ----------- CHAT ENDPOINT -----------
@@ -106,9 +107,9 @@ app.post("/api/admin-login", (req, res) => {
 });
 
 app.post("/api/toggle-ai", (req, res) => {
-  if (!req.session.loggedIn)
+  if (!req.session.loggedIn) {
     return res.status(403).json({ success: false, message: "Unauthorized" });
-
+  }
   aiEnabled = req.body.enabled;
   res.json({ success: true, aiEnabled });
 });
