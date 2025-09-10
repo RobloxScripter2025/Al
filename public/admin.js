@@ -1,32 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <h1>OGMSAI Admin Panel</h1>
+const loginForm = document.getElementById("login-form");
+const loginView = document.getElementById("login-view");
+const dashboardView = document.getElementById("dashboard-view");
+const toggleAI = document.getElementById("toggle-ai");
+const logoutBtn = document.getElementById("logout");
 
-  <div id="login-view">
-    <h2>Login</h2>
-    <form id="login-form">
-      <input type="text" id="username" placeholder="Username" required>
-      <input type="password" id="password" placeholder="Password" required>
-      <button type="submit">Login</button>
-    </form>
-  </div>
+// Login
+loginForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-  <div id="dashboard-view" style="display:none;">
-    <h2>Dashboard</h2>
-    <label>
-      <input type="checkbox" id="toggle-ai"> Enable AI
-    </label>
-    <br><br>
-    <button id="logout">Logout</button>
-  </div>
+  const res = await fetch("/api/admin-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  });
 
-  <script src="admin.js"></script>
-</body>
-</html>
+  const data = await res.json();
+  if (data.success) {
+    loginView.style.display = "none";
+    dashboardView.style.display = "block";
+  } else {
+    alert("❌ Login failed.");
+  }
+};
+
+// Toggle AI
+toggleAI.onchange = async (e) => {
+  await fetch("/api/admin-toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled: e.target.checked })
+  });
+};
+
+// Logout
+logoutBtn.onclick = async () => {
+  await fetch("/api/admin-logout", { method: "POST" });
+  location.reload();
+};
