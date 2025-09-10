@@ -1,41 +1,51 @@
 import express from "express";
 import fetch from "node-fetch";
 import session from "express-session";
+import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// --- __dirname fix for ESM ---
+// --- ESM dirname fix ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// --- Session middleware ---
+// --- Session for admin ---
 app.use(session({
   secret: "supersecretkey",
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // false for HTTP/Render dev
+  cookie: { secure: false }
 }));
 
-// --- Serve frontend files ---
+// --- Serve static files ---
 app.use(express.static(path.join(__dirname, "public")));
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-// --- AI toggle ---
+// --- In-memory AI toggle ---
 let aiEnabled = true;
 
-// --- Chat endpoint ---
+// --- Chat endpoint with cookie memory ---
 app.post("/api/chat", async (req, res) => {
   if (!aiEnabled) return res.json({ error: "AI is currently disabled." });
+
   const { message } = req.body;
   if (!message) return res.json({ error: "No message provided." });
 
   try {
+    // Get previous chat from cookie
+    let messages = [];
+    if (req.cookies.chatHistory) {
+      messages = JSON.parse(req.cookies.chatHistory);
+    }
+
+    messages.push({ role: "user", content: message });
+
+    // Call Groq AI
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -44,22 +54,32 @@ app.post("/api/chat", async (req, res) => {
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: message }]
+        messages
       })
     });
+
     const data = await response.json();
-    if (data.error) return res.json({ error: data.error.message });
-
     const reply = data.choices?.[0]?.message?.content || "⚠️ No reply.";
-    res.json({ reply });
 
+    messages.push({ role: "assistant", content: reply });
+
+    // Save chat in cookie (1 week)
+    res.cookie("chatHistory", JSON.stringify(messages), { maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+    res.json({ reply });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
-// --- Image generation placeholder ---
+// --- Clear chat ---
+app.post("/api/clear-chat", (req, res) => {
+  res.clearCookie("chatHistory");
+  res.json({ success: true });
+});
+
+// --- Placeholder image generation ---
 app.post("/api/generate-image", async (req, res) => {
   if (!aiEnabled) return res.json({ error: "AI is currently disabled." });
   const { prompt } = req.body;
@@ -68,12 +88,11 @@ app.post("/api/generate-image", async (req, res) => {
   res.json({ url: "https://via.placeholder.com/512?text=Image+placeholder" });
 });
 
-// --- Admin login page ---
+// --- Admin routes ---
 app.get("/admin/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// --- Admin login POST ---
 app.post("/admin/login", (req, res) => {
   const { username, password } = req.body;
   if (username === "Braxton" && password === "OGMSAdmin") {
@@ -83,10 +102,8 @@ app.post("/admin/login", (req, res) => {
   res.send("<p>Invalid login. <a href='/admin/login'>Try again</a></p>");
 });
 
-// --- Admin panel ---
 app.get("/admin", (req, res) => {
   if (!req.session.loggedIn) return res.redirect("/admin/login");
-
   res.send(`
     <h1>Admin Panel</h1>
     <p>AI Status: <b>${aiEnabled ? "ENABLED ✅" : "DISABLED ❌"}</b></p>
@@ -98,13 +115,11 @@ app.get("/admin", (req, res) => {
   `);
 });
 
-// --- Toggle AI ---
 app.post("/admin/toggle", (req, res) => {
   if (req.session.loggedIn) aiEnabled = !aiEnabled;
   res.redirect("/admin");
 });
 
-// --- Logout ---
 app.get("/admin/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/admin/login"));
 });
