@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 // ===== Groq settings =====
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = "llama2-7b"; // Update to a supported model
+const GROQ_MODEL = "llama2-7b"; // Must be an active, supported model
 
 if (!GROQ_API_KEY) {
   console.error("⚠️ GROQ_API_KEY is not set in environment variables!");
@@ -33,7 +33,7 @@ app.post("/api/chat", async (req, res) => {
 
     console.log("Sending messages to Groq API:", messages);
 
-    const response = await fetch("https://api.groq.com/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", { // Corrected URL
       method: "POST",
       headers: {
         "Authorization": `Bearer ${GROQ_API_KEY}`,
@@ -55,7 +55,7 @@ app.post("/api/chat", async (req, res) => {
       reply = data.choices[0].message.content;
     } else if (data?.error) {
       console.error("Groq API returned error:", data.error);
-      reply = "⚠️ Groq API error. Check console.";
+      reply = `⚠️ Groq API error: ${data.error.message}`;
     } else {
       console.error("Unexpected Groq API response:", data);
       reply = "⚠️ Unexpected Groq API response. Check console.";
