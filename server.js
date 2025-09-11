@@ -10,10 +10,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ===== Groq Settings =====
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = "gemma-7b"; // Replace with available model
+const GROQ_MODEL = "gemma-7b"; // Replace with a model you have access to
 
-if (!GROQ_API_KEY) console.error("⚠️ GROQ_API_KEY is not set!");
+if (!GROQ_API_KEY) console.error("⚠️ GROQ_API_KEY is not set in environment variables!");
 
 // ===== Middleware =====
 app.use(bodyParser.json());
@@ -34,6 +35,8 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ reply: "⚠️ Invalid messages payload" });
     }
 
+    console.log("Sending messages to Groq API:", messages);
+
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -47,13 +50,13 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const data = await response.json();
-    console.log("Groq API raw response:", JSON.stringify(data, null, 2));
+    console.log("Groq API response:", JSON.stringify(data, null, 2));
 
     let reply = "⚠️ No reply";
     if (data?.choices && data.choices[0]?.message?.content) {
       reply = data.choices[0].message.content;
     } else if (data?.error) {
-      console.error("Groq API returned error:", data.error);
+      console.error("Groq API error:", data.error);
       reply = `⚠️ Groq API error: ${data.error.message}`;
     } else {
       console.error("Unexpected Groq API response:", data);
@@ -69,27 +72,35 @@ app.post("/api/chat", async (req, res) => {
 
 // ===== Admin Login Page =====
 app.get("/admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin-login.html"));
+  const filePath = path.join(__dirname, "public", "admin-login.html");
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error("Error serving admin login page:", err);
+      res.status(500).send("⚠️ Could not load admin login page. Check server logs.");
+    }
+  });
 });
 
 // ===== Admin Login Handler =====
 app.post("/admin-login", (req, res) => {
   const { username, password } = req.body;
-
   if (username === "Braxton" && password === "OGMSAdmin") {
-    // Redirect to toggle page
     res.redirect("/admin-panel");
   } else {
-    res.send("⚠️ Invalid credentials.");
+    res.status(401).send("⚠️ Invalid credentials.");
   }
 });
 
 // ===== Admin Panel (Toggle AI) =====
 app.get("/admin-panel", (req, res) => {
-  res.send(`
+  const html = `
     <html>
       <head>
         <title>Admin Panel</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 2rem; }
+          button { padding: 0.5rem 1rem; font-size: 1rem; }
+        </style>
       </head>
       <body>
         <h1>Admin Panel</h1>
@@ -99,23 +110,31 @@ app.get("/admin-panel", (req, res) => {
         </form>
       </body>
     </html>
-  `);
+  `;
+  res.send(html);
 });
 
 app.post("/toggle-ai", (req, res) => {
   aiEnabled = !aiEnabled;
+  console.log("AI enabled:", aiEnabled);
   res.redirect("/admin-panel");
 });
 
 // ===== Serve homepage =====
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  const filePath = path.join(__dirname, "public", "index.html");
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error("Error serving index page:", err);
+      res.status(500).send("⚠️ Could not load homepage. Check server logs.");
+    }
+  });
 });
 
 // ===== Global error handlers =====
 app.use((err, req, res, next) => {
   console.error("Unhandled server error:", err);
-  res.status(500).send("⚠️ Internal Server Error. Check console.");
+  res.status(500).send("⚠️ Internal Server Error. Check server console.");
 });
 
 process.on("unhandledRejection", (reason, promise) => {
